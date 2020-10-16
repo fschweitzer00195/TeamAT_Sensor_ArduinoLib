@@ -56,7 +56,7 @@ void TatLogger::login(const String &p_username, const String &p_password)
             Serial.println("token valid");
             Serial.print("TOKEN: ");
             m_token = token;
-            Serial.println(m_token);
+            // Serial.println(m_token);
         }
         else
         {
@@ -167,7 +167,7 @@ void TatLogger::authenticate(const String &p_username, const String &p_password)
     char *headerkeys[] = {"Content-Type"};
     char *headervalues[] = {"application/json"};
     String payload = "{\"username\": \"" + p_username + "\", \"password\": \"" + p_password + "\"}";
-    Serial.println(payload);
+    // Serial.println(payload);
     postRequest(route, 1, headerkeys, headervalues, payload);
 
     const size_t capacity = JSON_OBJECT_SIZE(4) + JSON_OBJECT_SIZE(5) + 300;
@@ -247,7 +247,6 @@ void TatLogger::postRequest(const String &p_route, int p_headerLength, char *p_h
 
         // Send HTTP POST request
         int httpResponseCode = http.POST(p_payload);
-        // Serial.println(httpResponseCode);
         if (httpResponseCode>0)
         {
             String payload = http.getString();
@@ -350,10 +349,10 @@ void TatLogger::setMaxLogRateFromMembershipRequest(void)
   else if (convertedMembership == "PRO")
       m_membership = PRO;
   m_maxLogRate = (int)doc["logs_per_minute"];
-  Serial.print("membreship ");
-  Serial.print(m_maxLogRate);
-  Serial.print(", ");
-  Serial.println(m_membership);
+  // Serial.print("membreship ");
+  // Serial.print(m_maxLogRate);
+  // Serial.print(", ");
+  // Serial.println(m_membership);
   if (error) {
       Serial.print(F("deserializeJson() failed: "));
       Serial.println(error.c_str());

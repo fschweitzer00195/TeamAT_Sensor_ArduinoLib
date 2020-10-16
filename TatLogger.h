@@ -35,7 +35,7 @@ private:
     void requestDevicesCatalog(void);
 
 
-    String m_servername = "http://192.168.0.141:8000/";
+    String m_servername = "https://www.teamatsensors.com/";
     int m_httpResponse;
     String m_httpPayload;
     String m_token;
