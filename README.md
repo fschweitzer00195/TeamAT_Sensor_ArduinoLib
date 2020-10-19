@@ -9,13 +9,15 @@ ___
 
 ### Dependencies
 - https://github.com/espressif/arduino-esp32 
+- https://github.com/bblanchon/ArduinoJson
 
 ### First steps
 1. Follow espressif's instructions to setup your esp32. (see **Dependencies**)
 2. Download this project to the Arduino library directory on your computer (*C:\Users\user\Documents\Arduino\libraries* on Window)
-3. You can try the provided example *loggerExample.ino*
-4. In your *.ino* file you will have to write your wifi SSID and password, your account's credentials and the id of your devices to the indicated locations.
-5. Upload the code. Your device sould now log data to the server. 
+3. Install bblanchon ArduinoJson library (see **Dependencies**)
+4. You can try the provided example *loggerExample.ino*
+5. In your *.ino* file you will have to write your wifi SSID and password, your account's credentials and the id of your devices to the indicated locations.
+6. Upload the code. Your device sould now log data to the server. 
 
 ___
 ## Web app usage
