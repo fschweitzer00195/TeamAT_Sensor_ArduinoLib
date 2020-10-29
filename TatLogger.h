@@ -9,17 +9,20 @@
 #include <stdio.h>
 #include <TatSensor.h>
 #include <TatSensorDateTime.h>
+#include <TatBTParser.h>
 
 class TatLogger
 {
 public:
     TatLogger(int p_nbrOfDevicesToLog);
     // TODO: make destructor maybe
+    void begin(void);
     void begin(const char* p_ssid, const char* p_password);
     void login(const String& p_username, const String& p_password);
     void smartLog(TatSensor p_sensorArray[]);
     String getHTTPResponse(void);
     String getDatetime();
+    void tester(void);
     enum Membership {FREE=0, ADVANCED=1, PRO=2}; // 4/min, 15/min, 60/min
 
 private:
@@ -45,6 +48,7 @@ private:
     int m_nbrOfDevicesToLog;
     String m_serializedData;
     int m_dataPerDevice[10];
+    TatBTParser m_bleParser;
 
     static const int m_MAX_DATA_TO_LOG = 100;
 };

@@ -11,6 +11,16 @@ TatLogger::TatLogger(int p_nbrOfDevicesToLog) :
 
 }
 
+void TatLogger::begin(void)
+{
+    Serial.println("no wifi id hardcoded");
+    m_bleParser.begin();
+    const char* ssid = "";
+    const char* password = "";
+    
+    // begin(ssid, password);
+}
+
 /*!
    \brief begin WiFi connection and start clock
    \param p_ssid wifi network name
@@ -367,4 +377,9 @@ void TatLogger::setMaxLogRateFromMembershipRequest(void)
 String TatLogger::getHTTPResponse()
 {
     return String(m_httpResponse) + String(": ") + m_httpPayload;
+}
+
+void TatLogger::tester(void)
+{
+    m_bleParser.tester();
 }

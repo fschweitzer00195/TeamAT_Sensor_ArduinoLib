@@ -18,6 +18,7 @@ ___
 4. You can try the provided example *loggerExample.ino*
 5. In your *.ino* file you will have to write your wifi SSID and password, your account's credentials and the id of your devices to the indicated locations.
 6. Upload the code. Your device sould now log data to the server. 
+7. If you planned to use any bluetooth functionality, you must change the esp32's flash memory partition scheme. (In the arduino IDE go to *Tools -> Partition Scheme -> Minimal SPIFFS [recommended]* )
 
 ___
 ## Web app usage
