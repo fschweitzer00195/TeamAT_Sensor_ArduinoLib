@@ -11,6 +11,17 @@ class Credentials
             m_username(p_username), m_accountPassword(p_accountPassword), m_ssid(p_ssid), m_wifiPassword(p_wifiPassword) {}
         Credentials() :
             m_username(""), m_accountPassword(""), m_ssid(""), m_wifiPassword("") {}
+        bool areValid(void)
+        {
+            if (m_username.length() > 0 
+                && m_accountPassword.length() > 0 
+                && m_ssid.length() > 0
+                && m_wifiPassword.length() > 0)
+            {
+                return true;
+            }
+            return false;
+        }
         String m_username;
         String m_accountPassword;
         String m_ssid;

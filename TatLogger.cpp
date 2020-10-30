@@ -6,7 +6,7 @@
 TatLogger::TatLogger(int p_nbrOfDevicesToLog) :
  m_httpResponse(-1), m_httpPayload(""), m_token(""),
   m_membership(FREE), m_maxLogRate(0), m_nbrOfDevicesToLog(p_nbrOfDevicesToLog),
-  m_serializedData("")
+  m_serializedData(""), m_connectedToWifi(false)
 {
 
 }
@@ -15,10 +15,15 @@ void TatLogger::begin(void)
 {
     Serial.println("no wifi id hardcoded");
     m_bleParser.begin();
-    const char* ssid = "";
-    const char* password = "";
+    while (!m_bleParser.m_credentials.areValid())
+    {
+        Serial.println("waiting for credentials");
+        m_bleParser.waitForCredentials();
+    }
+    const char* ssid = m_bleParser.m_credentials.m_ssid.c_str();
+    const char* password = m_bleParser.m_credentials.m_wifiPassword.c_str();
     
-    // begin(ssid, password);
+    begin(ssid, password);
 }
 
 /*!
@@ -36,8 +41,21 @@ void TatLogger::begin(const char* p_ssid, const char* p_password)
         Serial.println("Connecting to WiFi..");
     }
     Serial.println("Connected to the WiFi network");
+    m_connectedToWifi = true;
     EEPROM.begin(200);
     m_datetime.start();
+}
+
+void TatLogger::login(void)
+{
+    m_bleParser.end();
+    while (!m_connectedToWifi)
+    {
+        delay(500);
+        Serial.println("No wifi connection. Perhaps no credentials received");
+    }
+    login(m_bleParser.m_credentials.m_username, m_bleParser.m_credentials.m_accountPassword);
+
 }
 
 /*!
@@ -177,9 +195,11 @@ void TatLogger::authenticate(const String &p_username, const String &p_password)
     char *headerkeys[] = {"Content-Type"};
     char *headervalues[] = {"application/json"};
     String payload = "{\"username\": \"" + p_username + "\", \"password\": \"" + p_password + "\"}";
-    // Serial.println(payload);
+    Serial.print("payload:  ");
+    Serial.println(payload);
     postRequest(route, 1, headerkeys, headervalues, payload);
-
+    Serial.print("m_httpPayload:  ");
+    Serial.println(m_httpPayload);
     const size_t capacity = JSON_OBJECT_SIZE(4) + JSON_OBJECT_SIZE(5) + 300;
     DynamicJsonDocument doc(capacity);
     // Parse JSON object
@@ -257,9 +277,13 @@ void TatLogger::postRequest(const String &p_route, int p_headerLength, char *p_h
 
         // Send HTTP POST request
         int httpResponseCode = http.POST(p_payload);
+        Serial.print("httpResponseCode:  ");
+        Serial.println(httpResponseCode);
         if (httpResponseCode>0)
         {
             String payload = http.getString();
+            Serial.print("HTTP+payload:  ");
+            Serial.println(payload);
             m_httpPayload = payload;
         }
         m_httpResponse = httpResponseCode;

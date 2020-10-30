@@ -36,6 +36,24 @@ void TatBTParser::begin(void)
     Serial.println("Waiting for client connection");  
 }
 
+void TatBTParser::waitForCredentials(void)
+{
+    delay(500);
+    if (m_deviceConnected && m_messageReceived)
+    {
+        char txString[] = "Credential Received";
+        m_characteristic -> setValue(txString);
+        m_characteristic -> notify();
+        Serial.println("sent value: " + String(txString));
+        m_messageReceived = false;
+    }
+}
+
+void TatBTParser::end(void)
+{
+    BLEDevice::deinit(true);
+}
+
 void TatBTParser::tester(void)
 {
     if (m_deviceConnected) 

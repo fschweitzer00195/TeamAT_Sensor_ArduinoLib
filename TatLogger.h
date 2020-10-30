@@ -18,6 +18,7 @@ public:
     // TODO: make destructor maybe
     void begin(void);
     void begin(const char* p_ssid, const char* p_password);
+    void login(void);
     void login(const String& p_username, const String& p_password);
     void smartLog(TatSensor p_sensorArray[]);
     String getHTTPResponse(void);
@@ -49,6 +50,8 @@ private:
     String m_serializedData;
     int m_dataPerDevice[10];
     TatBTParser m_bleParser;
+    bool m_connectedToWifi;
+    
 
     static const int m_MAX_DATA_TO_LOG = 100;
 };

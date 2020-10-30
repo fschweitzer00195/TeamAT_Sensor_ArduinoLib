@@ -19,6 +19,8 @@ class TatBTParser
 public:
     TatBTParser();
     void begin(void);
+    void waitForCredentials(void);
+    void end(void);
     void tester(void);
 
     bool m_deviceConnected;
