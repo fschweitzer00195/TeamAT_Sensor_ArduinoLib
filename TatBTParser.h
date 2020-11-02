@@ -9,9 +9,12 @@
 #include <ArduinoJson.h>
 #include <TatUtils.h>
 
-#define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
-#define CHARACTERISTIC_UUID_RX "beb5483e-36e1-4688-b7f5-ea07361b26a8"
-#define CHARACTERISTIC_UUID_TX "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+// #define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
+// #define CHARACTERISTIC_UUID_RX "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+// #define CHARACTERISTIC_UUID_TX "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+#define SERVICE_UUID        "c1fbb8e2-1d1a-11eb-adc1-0242ac120002"
+#define CHARACTERISTIC_UUID_RX "b562e545-371a-4981-aa33-26b8ecc3c788"
+#define CHARACTERISTIC_UUID_TX "b562e545-371a-4981-aa33-26b8ecc3c788"
 
 
 class TatBTParser

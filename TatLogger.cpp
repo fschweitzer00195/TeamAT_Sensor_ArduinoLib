@@ -42,8 +42,10 @@ void TatLogger::begin(const char* p_ssid, const char* p_password)
     }
     Serial.println("Connected to the WiFi network");
     m_connectedToWifi = true;
+    delay(500);
     EEPROM.begin(200);
     m_datetime.start();
+    delay(500);
 }
 
 void TatLogger::login(void)
@@ -76,7 +78,9 @@ void TatLogger::login(const String &p_username, const String &p_password)
         strcpy(charTokenHeader, tokenHeader.c_str());
         char *headerkeys[] = {"Content-Type", "Authorization"};
         char *headervalues[] = {"application/json", charTokenHeader};
+        delay(500);
         getRequest("api/auth/user", 2, headerkeys, headervalues);
+        delay(500);
         bool tokenIsValid = (m_httpResponse == 200);
         if (tokenIsValid)
         {
@@ -91,6 +95,7 @@ void TatLogger::login(const String &p_username, const String &p_password)
             Serial.println("token invalid");
             // ask for a new token
             authenticate(p_username, p_password);
+            delay(500);
             EEPROM.write(0, 1);
             eepromWriteString(1, m_token);
         }
@@ -100,6 +105,7 @@ void TatLogger::login(const String &p_username, const String &p_password)
         Serial.println("token not found");
         // authenticate
         authenticate(p_username, p_password);
+        delay(500);
         EEPROM.write(0, 1);
         eepromWriteString(1, m_token);
     }
@@ -277,13 +283,9 @@ void TatLogger::postRequest(const String &p_route, int p_headerLength, char *p_h
 
         // Send HTTP POST request
         int httpResponseCode = http.POST(p_payload);
-        Serial.print("httpResponseCode:  ");
-        Serial.println(httpResponseCode);
         if (httpResponseCode>0)
         {
             String payload = http.getString();
-            Serial.print("HTTP+payload:  ");
-            Serial.println(payload);
             m_httpPayload = payload;
         }
         m_httpResponse = httpResponseCode;

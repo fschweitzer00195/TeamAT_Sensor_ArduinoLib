@@ -18,6 +18,9 @@ void TatBTParser::begin(void)
     m_server = BLEDevice::createServer();
     m_server->setCallbacks(new MyServerCallbacks(&m_deviceConnected));
     // Create services
+    Serial.print("SERVICE_UUID");
+    Serial.println(SERVICE_UUID);
+
     BLEService *m_service = m_server->createService(SERVICE_UUID);
 
     // Create characteristics
