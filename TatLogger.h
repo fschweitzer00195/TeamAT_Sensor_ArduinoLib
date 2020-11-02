@@ -10,6 +10,7 @@
 #include <TatSensor.h>
 #include <TatSensorDateTime.h>
 #include <TatBTParser.h>
+#include <TatUtils.h>
 
 class TatLogger
 {
@@ -17,7 +18,7 @@ public:
     TatLogger(int p_nbrOfDevicesToLog);
     // TODO: make destructor maybe
     void begin(void);
-    void begin(const char* p_ssid, const char* p_password);
+    void begin(const char* p_ssid, const char* p_password, bool p_startEepromAndSaveCredentials=true);
     void login(void);
     void login(const String& p_username, const String& p_password);
     void smartLog(TatSensor p_sensorArray[]);
@@ -27,7 +28,10 @@ public:
     enum Membership {FREE=0, ADVANCED=1, PRO=2}; // 4/min, 15/min, 60/min
 
 private:
+    void authenticate(const Credentials& p_credentials);
     void authenticate(const String& p_username, const String& p_password);
+    void extractCredentialsFromEeprom(void);
+    void saveCredentialsToEeprom(const Credentials& p_credentials);
     bool readyToLog(TatSensor p_sensorArray[]);
     void makeJsonBody(TatSensor p_sensorArray[]);
     void logDataToServer(TatSensor p_sensorArray[]);
@@ -51,6 +55,9 @@ private:
     int m_dataPerDevice[10];
     TatBTParser m_bleParser;
     bool m_connectedToWifi;
+    Credentials m_eepromSavedCredentials;
+    bool m_isAuthenticated;
+
     
 
     static const int m_MAX_DATA_TO_LOG = 100;

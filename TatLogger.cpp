@@ -6,7 +6,7 @@
 TatLogger::TatLogger(int p_nbrOfDevicesToLog) :
  m_httpResponse(-1), m_httpPayload(""), m_token(""),
   m_membership(FREE), m_maxLogRate(0), m_nbrOfDevicesToLog(p_nbrOfDevicesToLog),
-  m_serializedData(""), m_connectedToWifi(false)
+  m_serializedData(""), m_connectedToWifi(false), m_eepromSavedCredentials(), m_isAuthenticated(false)
 {
 
 }
@@ -14,16 +14,33 @@ TatLogger::TatLogger(int p_nbrOfDevicesToLog) :
 void TatLogger::begin(void)
 {
     Serial.println("no wifi id hardcoded");
-    m_bleParser.begin();
-    while (!m_bleParser.m_credentials.areValid())
+    delay(500);
+    EEPROM.begin(200);
+    // EEPROM.write(0, 0);
+    // EEPROM.write(1, 0);
+    // EEPROM.write(2, 0);
+    // EEPROM.commit();
+    bool credentialsAreInEeprom = EEPROM.read(0);
+    if (credentialsAreInEeprom)
     {
-        Serial.println("waiting for credentials");
-        m_bleParser.waitForCredentials();
+        extractCredentialsFromEeprom();
+        Serial.println("Found credentials");
+        const char* ssid = m_eepromSavedCredentials.m_ssid.c_str();
+        const char* password = m_eepromSavedCredentials.m_wifiPassword.c_str();
+        begin(ssid, password, false);
     }
-    const char* ssid = m_bleParser.m_credentials.m_ssid.c_str();
-    const char* password = m_bleParser.m_credentials.m_wifiPassword.c_str();
-    
-    begin(ssid, password);
+    else
+    {
+        m_bleParser.begin();
+        while (!m_bleParser.m_credentials.areValid())
+        {
+            Serial.println("waiting for credentials");
+            m_bleParser.waitForCredentials();
+        }
+        const char* ssid = m_bleParser.m_credentials.m_ssid.c_str();
+        const char* password = m_bleParser.m_credentials.m_wifiPassword.c_str();
+        begin(ssid, password, false);
+    }
 }
 
 /*!
@@ -31,7 +48,7 @@ void TatLogger::begin(void)
    \param p_ssid wifi network name
    \param p_password wifi password
 */
-void TatLogger::begin(const char* p_ssid, const char* p_password)
+void TatLogger::begin(const char* p_ssid, const char* p_password, bool p_startEepromAndSaveCredentials)
 {
     Serial.println("from sensor logger");
     WiFi.begin(p_ssid, p_password);
@@ -42,8 +59,13 @@ void TatLogger::begin(const char* p_ssid, const char* p_password)
     }
     Serial.println("Connected to the WiFi network");
     m_connectedToWifi = true;
-    delay(500);
-    EEPROM.begin(200);
+    if (p_startEepromAndSaveCredentials)
+    {
+        m_eepromSavedCredentials.m_ssid = p_ssid;
+        m_eepromSavedCredentials.m_wifiPassword = p_password;
+        delay(500);
+        EEPROM.begin(200);
+    }
     m_datetime.start();
     delay(500);
 }
@@ -56,8 +78,33 @@ void TatLogger::login(void)
         delay(500);
         Serial.println("No wifi connection. Perhaps no credentials received");
     }
-    login(m_bleParser.m_credentials.m_username, m_bleParser.m_credentials.m_accountPassword);
 
+    if (m_eepromSavedCredentials.areValid())
+    {
+        Serial.println("Found credentials in eeprom");
+        authenticate(m_eepromSavedCredentials);
+        if (m_isAuthenticated)
+        {
+            saveCredentialsToEeprom(m_eepromSavedCredentials);
+            setMaxLogRateFromMembershipRequest();
+            m_datetime.startChrono();
+        }
+    }
+    else if (m_bleParser.m_credentials.areValid())
+    {
+        Serial.println("Received credentials via BLE");
+        authenticate(m_bleParser.m_credentials);
+        if (m_isAuthenticated)
+        {
+            saveCredentialsToEeprom(m_bleParser.m_credentials);
+            setMaxLogRateFromMembershipRequest();
+            m_datetime.startChrono();
+        }
+    }
+    else
+    {
+        Serial.println("please call begin() before login()");
+    }
 }
 
 /*!
@@ -67,6 +114,11 @@ void TatLogger::login(void)
 */
 void TatLogger::login(const String &p_username, const String &p_password)
 {
+    m_eepromSavedCredentials.m_username = p_username;
+    m_eepromSavedCredentials.m_accountPassword = p_password;
+    login();
+
+    /*----------------------------------------------------------
     // Check if token in eeprom => addr 0 : bool, addr 1: length int, addr 2+ Token
     int isToken = EEPROM.read(0);
     if (isToken == 1)
@@ -110,6 +162,7 @@ void TatLogger::login(const String &p_username, const String &p_password)
         eepromWriteString(1, m_token);
     }
     m_datetime.startChrono();
+    ----------------------------------------------*/
 }
 
 void TatLogger::smartLog(TatSensor p_sensorArray[])
@@ -124,7 +177,7 @@ void TatLogger::smartLog(TatSensor p_sensorArray[])
 }
 
 bool TatLogger::readyToLog(TatSensor p_sensorArray[])
-{
+{  
     if (m_datetime.getChrono() > 60/m_maxLogRate)
     {
         return true;
@@ -181,6 +234,19 @@ void TatLogger::logDataToServer(TatSensor p_sensorArray[])
     char *headervalues[] = {"application/json", charTokenHeader};
     // request
     postRequest("api/datalogmany", 2, headerkeys, headervalues, m_serializedData);
+    if (m_httpResponse == 401)
+    {
+        Serial.println("re-login");
+        login();
+        // make headers
+        String rtokenHeader = "Token " + m_token;
+        char rcharTokenHeader[256];
+        strcpy(rcharTokenHeader, rtokenHeader.c_str());
+        char *rheaderkeys[] = {"Content-Type", "Authorization"};
+        char *rheadervalues[] = {"application/json", rcharTokenHeader};
+        // request
+        postRequest("api/datalogmany", 2, rheaderkeys, rheadervalues, m_serializedData);
+    }
     // reset
     for (int i = 0; i < m_nbrOfDevicesToLog; i++)
     {
@@ -188,6 +254,45 @@ void TatLogger::logDataToServer(TatSensor p_sensorArray[])
     }
     m_serializedData = "";
 
+}
+
+void TatLogger::authenticate(const Credentials& p_credentials)
+{
+    bool isToken = (m_token.length() > 0);
+    if (isToken) 
+    {
+        // request user with current token
+        String tokenHeader = "Token " + m_token;
+        char charTokenHeader[256];
+        strcpy(charTokenHeader, tokenHeader.c_str());
+        char *headerkeys[] = {"Content-Type", "Authorization"};
+        char *headervalues[] = {"application/json", charTokenHeader};
+        delay(500);
+        getRequest("api/auth/user", 2, headerkeys, headervalues);
+        delay(500);
+        bool tokenIsValid = (m_httpResponse == 200);
+        if (tokenIsValid)
+        {
+            // setMaxLogRateFromMembershipRequest();
+            Serial.println("token valid");
+            m_isAuthenticated = true;
+        }
+        else
+        {
+            Serial.println("token invalid");
+            // ask for a new token
+            authenticate(p_credentials.m_username, p_credentials.m_accountPassword);
+            delay(500);
+        }
+        
+    }
+    else
+    {
+        Serial.println("token not found");
+        // authenticate
+        authenticate(p_credentials.m_username, p_credentials.m_accountPassword);
+        delay(500);
+    }
 }
 
 /*!
@@ -204,6 +309,12 @@ void TatLogger::authenticate(const String &p_username, const String &p_password)
     Serial.print("payload:  ");
     Serial.println(payload);
     postRequest(route, 1, headerkeys, headervalues, payload);
+    if (m_httpResponse != 200)
+    {
+        m_isAuthenticated = false;
+        Serial.println("Wrong credentials");
+        return;
+    }
     Serial.print("m_httpPayload:  ");
     Serial.println(m_httpPayload);
     const size_t capacity = JSON_OBJECT_SIZE(4) + JSON_OBJECT_SIZE(5) + 300;
@@ -213,12 +324,44 @@ void TatLogger::authenticate(const String &p_username, const String &p_password)
     if (error) {
         Serial.print(F("deserializeJson() failed: "));
         Serial.println(error.c_str());
+        m_isAuthenticated = false;
         return;
     }
     Serial.print("TOKEN: ");
     const char* token =  doc["token"];
     m_token = token;
     Serial.println(m_token);
+    m_isAuthenticated = true;
+}
+
+void TatLogger::extractCredentialsFromEeprom(void)
+{
+    int cursor = 1;
+    m_eepromSavedCredentials.m_username = eepromReadString(cursor);
+    cursor += (EEPROM.read(cursor) + 1); // 1 + (4 + 1) = 6
+    m_eepromSavedCredentials.m_accountPassword = eepromReadString(cursor);
+    cursor += (EEPROM.read(cursor) + 1); // 6 + (6 + 1) = 13
+    m_eepromSavedCredentials.m_ssid = eepromReadString(cursor);
+    cursor += (EEPROM.read(cursor) + 1); // 13 + (6 + 1) = 20
+    m_eepromSavedCredentials.m_wifiPassword = eepromReadString(cursor);
+    cursor += (EEPROM.read(cursor) + 1); // 13 + (6 + 1) = 20
+    m_token = eepromReadString(cursor);
+}
+
+void TatLogger::saveCredentialsToEeprom(const Credentials& p_credentials)
+{
+    int cursor = 0;
+    eepromWriteString(cursor, "1"); // bool 
+    cursor ++;
+    eepromWriteString(cursor, p_credentials.m_username);
+    cursor += (p_credentials.m_username.length() + 1);
+    eepromWriteString(cursor, p_credentials.m_accountPassword);
+    cursor += (p_credentials.m_accountPassword.length() + 1);
+    eepromWriteString(cursor, p_credentials.m_ssid);
+    cursor += (p_credentials.m_ssid.length() + 1);
+    eepromWriteString(cursor, p_credentials.m_wifiPassword);
+    cursor += (p_credentials.m_wifiPassword.length() + 1);
+    eepromWriteString(cursor, m_token);
 }
 
 /*!
@@ -300,7 +443,7 @@ void TatLogger::postRequest(const String &p_route, int p_headerLength, char *p_h
 
 /*!
    \brief reads a string saved in EEPROM.
-   \param p_addr string beginnig adress. Content of this adress must be the length of the following string
+   \param p_addr string beginning address. Content of this address must be the length of the following string
    \return currentRead the decoded string
 */
 String TatLogger::eepromReadString(int p_addr) const
@@ -319,7 +462,7 @@ String TatLogger::eepromReadString(int p_addr) const
 
 /*!
    \brief writes a string in EEPROM with format [stringLength, p_value[0], ..., p_value[stringLength - 1]]
-   \param p_addr string beginnig adress. Content of this adress must be the length of the following string
+   \param p_addr string beginning address. Content of this address must be the length of the following string
    \param p_value string to save
    \return currentRead the decoded string
 */
@@ -372,28 +515,37 @@ void TatLogger::requestDevicesCatalog()
 */
 void TatLogger::setMaxLogRateFromMembershipRequest(void)
 {
-  // parse payload
-  const size_t capacity = JSON_OBJECT_SIZE(5) + JSON_OBJECT_SIZE(6) + 300;
-  DynamicJsonDocument doc(capacity);
-  DeserializationError error = deserializeJson(doc, m_httpPayload.c_str());
-  const char* membership =  doc["membership"];
-  String convertedMembership = membership;
-  if (convertedMembership == "FREE")
-      m_membership = FREE;
-  else if (convertedMembership == "ADVANCED")
-      m_membership = ADVANCED;
-  else if (convertedMembership == "PRO")
-      m_membership = PRO;
-  m_maxLogRate = (int)doc["logs_per_minute"];
-  // Serial.print("membreship ");
-  // Serial.print(m_maxLogRate);
-  // Serial.print(", ");
-  // Serial.println(m_membership);
-  if (error) {
-      Serial.print(F("deserializeJson() failed: "));
-      Serial.println(error.c_str());
-      return;
-  }
+    String tokenHeader = "Token " + m_token;
+    char charTokenHeader[256];
+    strcpy(charTokenHeader, tokenHeader.c_str());
+    char *headerkeys[] = {"Content-Type", "Authorization"};
+    char *headervalues[] = {"application/json", charTokenHeader};
+    delay(500);
+    getRequest("api/auth/user", 2, headerkeys, headervalues);
+    delay(500);
+    Serial.println(m_httpPayload);
+    // parse payload
+    const size_t capacity = JSON_OBJECT_SIZE(5) + JSON_OBJECT_SIZE(6) + 300;
+    DynamicJsonDocument doc(capacity);
+    DeserializationError error = deserializeJson(doc, m_httpPayload.c_str());
+    const char* membership =  doc["membership"];
+    String convertedMembership = membership;
+    if (convertedMembership == "FREE")
+        m_membership = FREE;
+    else if (convertedMembership == "ADVANCED")
+        m_membership = ADVANCED;
+    else if (convertedMembership == "PRO")
+        m_membership = PRO;
+    m_maxLogRate = (int)doc["logs_per_minute"];
+    // Serial.print("membreship ");
+    // Serial.print(m_maxLogRate);
+    // Serial.print(", ");
+    // Serial.println(m_membership);
+    if (error) {
+        Serial.print(F("deserializeJson() failed: "));
+        Serial.println(error.c_str());
+        return;
+    }
 }
 
 /*!
