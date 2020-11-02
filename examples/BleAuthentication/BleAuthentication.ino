@@ -9,8 +9,6 @@ TatLogger logger(NBR_OF_SENSORS);
 // Declare TatSensor object directly inside an array TatSensor(device_id)
 // Device id can be found on the manage device page on website
 TatSensor sensorArray[NBR_OF_SENSORS] = {TatSensor(FIRST_DEVICE_ID), TatSensor(SECOND_DEVICE_ID)};
-const char* SSID = "YOUR_WIFI_SSID";
-const char* PASSWORD =  "YOUR_WIFI_PWD";
 
 
 void toggleLed(int p_tics);
@@ -25,9 +23,8 @@ void setup()
     Serial.println("Serial ON");
     
     // begin communication with server
-    logger.begin(SSID, PASSWORD);
-    logger.login("your_account_username", "your_account_password");
-    Serial.println(logger.getHTTPResponse());
+    logger.begin();
+    logger.login();
 	
 	// dev board LED indicator
     pinMode(led, OUTPUT);
