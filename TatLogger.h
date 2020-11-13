@@ -17,11 +17,13 @@ class TatLogger
 public:
     TatLogger(int p_nbrOfDevicesToLog);
     // TODO: make destructor maybe
-    void begin(void);
+    void begin(bool p_forceAuth=false);
     void begin(const char* p_ssid, const char* p_password, bool p_startEepromAndSaveCredentials=true);
-    void login(void);
+    void beginBLE(void);
+    void login(bool p_forceAuth=false);
     void login(const String& p_username, const String& p_password);
     void smartLog(TatSensor p_sensorArray[]);
+    void streamBLE(TatSensor p_sensorArray[]);
     String getHTTPResponse(void);
     String getDatetime();
     void tester(void);
@@ -34,6 +36,7 @@ private:
     void saveCredentialsToEeprom(const Credentials& p_credentials);
     bool readyToLog(TatSensor p_sensorArray[]);
     void makeJsonBody(TatSensor p_sensorArray[]);
+    void makeJsonStreamable(TatSensor p_sensorArray[]);
     void logDataToServer(TatSensor p_sensorArray[]);
     void getRequest(const String& p_route, int p_headerLength, char *p_headerKeys[], char *p_headerValues[]);
     void postRequest(const String& p_route, int p_headerLength, char *p_headerKeys[], char *p_headerValues[], const String& p_payload);
@@ -57,6 +60,8 @@ private:
     bool m_connectedToWifi;
     Credentials m_eepromSavedCredentials;
     bool m_isAuthenticated;
+
+    const bool m_sendBLE = true;
 
     
 

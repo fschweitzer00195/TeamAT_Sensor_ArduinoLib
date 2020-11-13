@@ -11,7 +11,13 @@ TatLogger::TatLogger(int p_nbrOfDevicesToLog) :
 
 }
 
-void TatLogger::begin(void)
+void TatLogger::beginBLE(void)
+{
+    const bool bleStreamData = true;
+    m_bleParser.begin(bleStreamData);
+}
+
+void TatLogger::begin(bool p_forceAuth)
 {
     Serial.println("no wifi id hardcoded");
     delay(500);
@@ -21,7 +27,7 @@ void TatLogger::begin(void)
     // EEPROM.write(2, 0);
     // EEPROM.commit();
     bool credentialsAreInEeprom = EEPROM.read(0);
-    if (credentialsAreInEeprom)
+    if (credentialsAreInEeprom && !p_forceAuth)
     {
         extractCredentialsFromEeprom();
         Serial.println("Found credentials");
@@ -52,34 +58,50 @@ void TatLogger::begin(const char* p_ssid, const char* p_password, bool p_startEe
 {
     Serial.println("from sensor logger");
     WiFi.begin(p_ssid, p_password);
-    while (WiFi.status() != WL_CONNECTED)
+    unsigned long timer = millis();
+    unsigned long timeMax = 100000;
+    bool timeout = false;
+    while (WiFi.status() != WL_CONNECTED && !timeout)
     {
         delay(500);
         Serial.println("Connecting to WiFi..");
+        if (millis() - timer >= timeMax)
+        {
+            timeout = true;
+        }
     }
-    Serial.println("Connected to the WiFi network");
-    m_connectedToWifi = true;
-    if (p_startEepromAndSaveCredentials)
+    if (!timeout)
     {
-        m_eepromSavedCredentials.m_ssid = p_ssid;
-        m_eepromSavedCredentials.m_wifiPassword = p_password;
+        Serial.println("Connected to the WiFi network");
+        m_connectedToWifi = true;
+        if (p_startEepromAndSaveCredentials)
+        {
+            m_eepromSavedCredentials.m_ssid = p_ssid;
+            m_eepromSavedCredentials.m_wifiPassword = p_password;
+            delay(500);
+            EEPROM.begin(200);
+        }
+        m_datetime.start();
         delay(500);
-        EEPROM.begin(200);
     }
-    m_datetime.start();
-    delay(500);
+    else 
+    {
+        Serial.println("Unable to connect to the WiFi network");
+        // begin(true);
+    }
+    
 }
 
-void TatLogger::login(void)
+void TatLogger::login(bool p_forceAuth)
 {
-    m_bleParser.end();
+    // m_bleParser.end();
     while (!m_connectedToWifi)
     {
         delay(500);
         Serial.println("No wifi connection. Perhaps no credentials received");
     }
 
-    if (m_eepromSavedCredentials.areValid())
+    if (m_eepromSavedCredentials.areValid() && !p_forceAuth)
     {
         Serial.println("Found credentials in eeprom");
         authenticate(m_eepromSavedCredentials);
@@ -117,52 +139,6 @@ void TatLogger::login(const String &p_username, const String &p_password)
     m_eepromSavedCredentials.m_username = p_username;
     m_eepromSavedCredentials.m_accountPassword = p_password;
     login();
-
-    /*----------------------------------------------------------
-    // Check if token in eeprom => addr 0 : bool, addr 1: length int, addr 2+ Token
-    int isToken = EEPROM.read(0);
-    if (isToken == 1)
-    {
-        String token = eepromReadString(1);
-        // request user with current token
-        String tokenHeader = "Token " + token;
-        char charTokenHeader[256];
-        strcpy(charTokenHeader, tokenHeader.c_str());
-        char *headerkeys[] = {"Content-Type", "Authorization"};
-        char *headervalues[] = {"application/json", charTokenHeader};
-        delay(500);
-        getRequest("api/auth/user", 2, headerkeys, headervalues);
-        delay(500);
-        bool tokenIsValid = (m_httpResponse == 200);
-        if (tokenIsValid)
-        {
-            setMaxLogRateFromMembershipRequest();
-            Serial.println("token valid");
-            Serial.print("TOKEN: ");
-            m_token = token;
-            // Serial.println(m_token);
-        }
-        else
-        {
-            Serial.println("token invalid");
-            // ask for a new token
-            authenticate(p_username, p_password);
-            delay(500);
-            EEPROM.write(0, 1);
-            eepromWriteString(1, m_token);
-        }
-    }
-    else
-    {
-        Serial.println("token not found");
-        // authenticate
-        authenticate(p_username, p_password);
-        delay(500);
-        EEPROM.write(0, 1);
-        eepromWriteString(1, m_token);
-    }
-    m_datetime.startChrono();
-    ----------------------------------------------*/
 }
 
 void TatLogger::smartLog(TatSensor p_sensorArray[])
@@ -174,6 +150,16 @@ void TatLogger::smartLog(TatSensor p_sensorArray[])
         m_datetime.startChrono();
     }
 
+}
+
+void TatLogger::streamBLE(TatSensor p_sensorArray[])
+{
+    if (m_bleParser.m_deviceConnected && m_bleParser.m_isON)
+    {
+        makeJsonStreamable(p_sensorArray);
+        m_bleParser.stream(m_serializedData);
+    }
+    
 }
 
 bool TatLogger::readyToLog(TatSensor p_sensorArray[])
@@ -194,6 +180,22 @@ bool TatLogger::readyToLog(TatSensor p_sensorArray[])
         sumOfData += m_dataPerDevice[i];
     }
     return conclusion;
+}
+
+void TatLogger::makeJsonStreamable(TatSensor p_sensorArray[])
+{
+    String buffer = "{";
+    for (int i = 0; i < m_nbrOfDevicesToLog; i++)
+    {
+        buffer += "[";
+        String deviceID = String(p_sensorArray[i].getDeviceID());
+        int cursor = p_sensorArray[i].getDataCursor() - 1;
+        String data = String(p_sensorArray[i].getData(cursor));
+        buffer += deviceID + "," + data + "],";
+        p_sensorArray[i].setDataCursor(0);
+    }
+    buffer += "}";
+    m_serializedData = buffer;
 }
 
 void TatLogger::makeJsonBody(TatSensor p_sensorArray[])
@@ -306,8 +308,6 @@ void TatLogger::authenticate(const String &p_username, const String &p_password)
     char *headerkeys[] = {"Content-Type"};
     char *headervalues[] = {"application/json"};
     String payload = "{\"username\": \"" + p_username + "\", \"password\": \"" + p_password + "\"}";
-    Serial.print("payload:  ");
-    Serial.println(payload);
     postRequest(route, 1, headerkeys, headervalues, payload);
     if (m_httpResponse != 200)
     {
@@ -375,6 +375,11 @@ void TatLogger::getRequest(const String &p_route, int p_headerLength, char *p_he
 {
     if (WiFi.status() == WL_CONNECTED)
     {
+        if (m_bleParser.m_isON)
+        {
+            Serial.println("m_bleParser.end();");
+            m_bleParser.end();
+        }
         HTTPClient http;
         String serverpath = m_servername + p_route;
         http.begin(serverpath.c_str());
@@ -415,6 +420,11 @@ void TatLogger::postRequest(const String &p_route, int p_headerLength, char *p_h
 {
     if (WiFi.status() == WL_CONNECTED)
     {
+        if (m_bleParser.m_isON)
+        {
+            Serial.println("m_bleParser.end();");
+            m_bleParser.end();
+        }
         HTTPClient http;
         String serverpath = m_servername + p_route;
         http.begin(serverpath.c_str());
@@ -496,7 +506,7 @@ String TatLogger::getDatetime()
             datetimeFormat += String(datetime[i]) + sep[i];
         }
     }
-    return  datetimeFormat + "Z"; // TODO: do not hardcode
+    return  datetimeFormat + "Z";
 }
 
 /*!

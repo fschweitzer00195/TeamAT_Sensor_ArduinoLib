@@ -15,24 +15,29 @@
 #define SERVICE_UUID        "c1fbb8e2-1d1a-11eb-adc1-0242ac120002"
 #define CHARACTERISTIC_UUID_RX "b562e545-371a-4981-aa33-26b8ecc3c788"
 #define CHARACTERISTIC_UUID_TX "b562e545-371a-4981-aa33-26b8ecc3c788"
+#define DATA_CHARACTERISTIC_UUID_TX "a6463c38-1ed9-11eb-adc1-0242ac120002"
 
 
 class TatBTParser
 {
 public:
     TatBTParser();
-    void begin(void);
+    void begin(bool p_streamMode=false);
     void waitForCredentials(void);
+    void stream(const String& p_serializedData);
     void end(void);
+    void resume(void);
     void tester(void);
 
+    bool m_isON;
     bool m_deviceConnected;
     bool m_messageReceived;
     Credentials m_credentials;
 
 private:
     BLEServer* m_server;
-    BLECharacteristic* m_characteristic;
+    BLECharacteristic* m_credentialsCharacteristic;
+    BLECharacteristic* m_dataCharacteristic;
     int m_txValue;
     int m_count;
     
@@ -55,10 +60,10 @@ class MyServerCallbacks: public BLEServerCallbacks
     }
 };
 
-class MyCallbacks: public BLECharacteristicCallbacks 
+class CredentialsCallbacks: public BLECharacteristicCallbacks 
 {
     public:
-        MyCallbacks(bool* p_messageReceived, Credentials* p_credentials):
+        CredentialsCallbacks(bool* p_messageReceived, Credentials* p_credentials):
                 BLECharacteristicCallbacks(), i_messageReceived(p_messageReceived), i_credentials(p_credentials)
         {}
         bool* i_messageReceived;
@@ -112,6 +117,12 @@ class MyCallbacks: public BLECharacteristicCallbacks
     }
 };
 
+// class DataStreamCallbacks: public BLECharacteristicCallbacks 
+// {
+//     public:
 
+//     private:
+
+// };
 
 #endif //__TATBTPARSER_H__
