@@ -184,17 +184,21 @@ bool TatLogger::readyToLog(TatSensor p_sensorArray[])
 
 void TatLogger::makeJsonStreamable(TatSensor p_sensorArray[])
 {
-    String buffer = "{";
+    String buffer = "[";
     for (int i = 0; i < m_nbrOfDevicesToLog; i++)
     {
         buffer += "[";
         String deviceID = String(p_sensorArray[i].getDeviceID());
         int cursor = p_sensorArray[i].getDataCursor() - 1;
         String data = String(p_sensorArray[i].getData(cursor));
-        buffer += deviceID + "," + data + "],";
+        buffer += deviceID + "," + data + "]";
         p_sensorArray[i].setDataCursor(0);
+        if (i + 1 < m_nbrOfDevicesToLog) 
+        {
+            buffer += ",";
+        }
     }
-    buffer += "}";
+    buffer += "]";
     m_serializedData = buffer;
 }
 
