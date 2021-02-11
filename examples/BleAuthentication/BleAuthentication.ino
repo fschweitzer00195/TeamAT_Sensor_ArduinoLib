@@ -1,8 +1,8 @@
 #include <TatLogger.h>
 #define led 2
-#define FIRST_DEVICE_ID = 36
-#define SECOND_DEVICE_ID = 37
-#define NBR_OF_SENSORS = 2
+#define FIRST_DEVICE_ID 36
+#define SECOND_DEVICE_ID 37
+#define NBR_OF_SENSORS 2
 
 int count = 0;
 TatLogger logger(NBR_OF_SENSORS);

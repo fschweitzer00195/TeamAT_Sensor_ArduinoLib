@@ -1,7 +1,7 @@
 #include "TatLogger.h"
 
-/*!
-   \brief constructor
+/**
+* @brief constructor
 */
 TatLogger::TatLogger(int p_nbrOfDevicesToLog) :
  m_httpResponse(-1), m_httpPayload(""), m_token(""),
@@ -11,12 +11,21 @@ TatLogger::TatLogger(int p_nbrOfDevicesToLog) :
 
 }
 
+/**
+ * @brief begin ble data stream
+ * 
+ */
 void TatLogger::beginBLE(void)
 {
     const bool bleStreamData = true;
     m_bleParser.begin(bleStreamData);
 }
 
+/**
+ * @brief connect to wifi with credentials in eeprom or received via mobile app
+ * 
+ * @param p_forceAuth force mobile app auth. Don't check eeprom if true
+ */
 void TatLogger::begin(bool p_forceAuth)
 {
     Serial.println("no wifi id hardcoded");
@@ -49,10 +58,11 @@ void TatLogger::begin(bool p_forceAuth)
     }
 }
 
-/*!
-   \brief begin WiFi connection and start clock
-   \param p_ssid wifi network name
-   \param p_password wifi password
+/**
+* @brief begin WiFi connection and start clock
+*
+* @param p_ssid wifi network name
+* @param p_password wifi password
 */
 void TatLogger::begin(const char* p_ssid, const char* p_password, bool p_startEepromAndSaveCredentials)
 {
@@ -92,6 +102,11 @@ void TatLogger::begin(const char* p_ssid, const char* p_password, bool p_startEe
     
 }
 
+/**
+ * @brief login to server with credentials in eeprom or from mobile app
+ * 
+ * @param p_forceAuth force mobile app auth.
+ */
 void TatLogger::login(bool p_forceAuth)
 {
     // m_bleParser.end();
@@ -129,10 +144,10 @@ void TatLogger::login(bool p_forceAuth)
     }
 }
 
-/*!
-   \brief Logs user in the TeamAt server
-   \param p_username username
-   \param p_password password
+/**
+* @brief Logs user in the TeamAt server
+* @param p_username username
+* @param p_password password
 */
 void TatLogger::login(const String &p_username, const String &p_password)
 {
@@ -141,6 +156,11 @@ void TatLogger::login(const String &p_username, const String &p_password)
     login();
 }
 
+/**
+ * @brief log data to server
+ * 
+ * @param p_sensorArray array of data to send
+ */
 void TatLogger::smartLog(TatSensor p_sensorArray[])
 {
 
@@ -152,6 +172,11 @@ void TatLogger::smartLog(TatSensor p_sensorArray[])
 
 }
 
+/**
+ * @brief steam data to mobile app via BT low energy
+ * 
+ * @param p_sensorArray array of data to send
+ */
 void TatLogger::streamBLE(TatSensor p_sensorArray[])
 {
     if (m_bleParser.m_deviceConnected && m_bleParser.m_isON)
@@ -162,6 +187,13 @@ void TatLogger::streamBLE(TatSensor p_sensorArray[])
     
 }
 
+/**
+ * @brief determines if will send data according to the user infos (membership)
+ * 
+ * @param p_sensorArray array of data to send
+ * @return true 
+ * @return false 
+ */
 bool TatLogger::readyToLog(TatSensor p_sensorArray[])
 {  
     if (m_datetime.getChrono() > 60/m_maxLogRate)
@@ -182,6 +214,11 @@ bool TatLogger::readyToLog(TatSensor p_sensorArray[])
     return conclusion;
 }
 
+/**
+ * @brief serialize data to a JSON-like string format for BLE
+ * 
+ * @param p_sensorArray array of data to send
+ */
 void TatLogger::makeJsonStreamable(TatSensor p_sensorArray[])
 {
     String buffer = "[";
@@ -202,6 +239,11 @@ void TatLogger::makeJsonStreamable(TatSensor p_sensorArray[])
     m_serializedData = buffer;
 }
 
+/**
+ * @brief JSONify data
+ * 
+ * @param p_sensorArray array of data to send
+ */
 void TatLogger::makeJsonBody(TatSensor p_sensorArray[])
 {
     size_t computableCapacity = JSON_ARRAY_SIZE(m_nbrOfDevicesToLog)
@@ -230,6 +272,11 @@ void TatLogger::makeJsonBody(TatSensor p_sensorArray[])
 
 }
 
+/**
+ * @brief send data to server
+ * 
+ * @param p_sensorArray array of data to send
+ */
 void TatLogger::logDataToServer(TatSensor p_sensorArray[])
 {
     // make headers
@@ -262,6 +309,11 @@ void TatLogger::logDataToServer(TatSensor p_sensorArray[])
 
 }
 
+/**
+ * @brief check token auth. with crdential from eeprom or mobile app
+ * 
+ * @param p_credentials username and passwords
+ */
 void TatLogger::authenticate(const Credentials& p_credentials)
 {
     bool isToken = (m_token.length() > 0);
@@ -301,10 +353,10 @@ void TatLogger::authenticate(const Credentials& p_credentials)
     }
 }
 
-/*!
-   \brief performs the authentication, posts login request to server
-   \param p_username username
-   \param p_password password
+/**
+* @brief performs the authentication, posts login request to server
+* @param p_username username
+* @param p_password password
 */
 void TatLogger::authenticate(const String &p_username, const String &p_password)
 {
@@ -338,6 +390,7 @@ void TatLogger::authenticate(const String &p_username, const String &p_password)
     m_isAuthenticated = true;
 }
 
+
 void TatLogger::extractCredentialsFromEeprom(void)
 {
     int cursor = 1;
@@ -368,12 +421,12 @@ void TatLogger::saveCredentialsToEeprom(const Credentials& p_credentials)
     eepromWriteString(cursor, m_token);
 }
 
-/*!
-   \brief execute a http get request
-   \param p_route API url
-   \param p_headerLength expected length of the request's header
-   \param p_headerKeys array of header's field names
-   \param p_headerValues array of header's field contents
+/**
+* @brief execute a http get request
+* @param p_route API url
+* @param p_headerLength expected length of the request's header
+* @param p_headerKeys array of header's field names
+* @param p_headerValues array of header's field contents
 */
 void TatLogger::getRequest(const String &p_route, int p_headerLength, char *p_headerKeys[], char *p_headerValues[])
 {
@@ -411,13 +464,13 @@ void TatLogger::getRequest(const String &p_route, int p_headerLength, char *p_he
     }
 }
 
-/*!
-   \brief execute a http post request
-   \param p_route API url
-   \param p_headerLength expected length of the request's header
-   \param p_headerKeys array of header's field names
-   \param p_headerValues array of header's field contents
-   \param p_payload body of the request
+/**
+* @brief execute a http post request
+* @param p_route API url
+* @param p_headerLength expected length of the request's header
+* @param p_headerKeys array of header's field names
+* @param p_headerValues array of header's field contents
+* @param p_payload body of the request
 */
 void TatLogger::postRequest(const String &p_route, int p_headerLength, char *p_headerKeys[], char *p_headerValues[],
                               const String &p_payload)
@@ -455,10 +508,10 @@ void TatLogger::postRequest(const String &p_route, int p_headerLength, char *p_h
     }
 }
 
-/*!
-   \brief reads a string saved in EEPROM.
-   \param p_addr string beginning address. Content of this address must be the length of the following string
-   \return currentRead the decoded string
+/**
+* @brief reads a string saved in EEPROM.
+* @param p_addr string beginning address. Content of this address must be the length of the following string
+* @return currentRead the decoded string
 */
 String TatLogger::eepromReadString(int p_addr) const
 {
@@ -474,11 +527,11 @@ String TatLogger::eepromReadString(int p_addr) const
     return currentRead;
 }
 
-/*!
-   \brief writes a string in EEPROM with format [stringLength, p_value[0], ..., p_value[stringLength - 1]]
-   \param p_addr string beginning address. Content of this address must be the length of the following string
-   \param p_value string to save
-   \return currentRead the decoded string
+/**
+* @brief writes a string in EEPROM with format [stringLength, p_value[0], ..., p_value[stringLength - 1]]
+* @param p_addr string beginning address. Content of this address must be the length of the following string
+* @param p_value string to save
+* @return currentRead the decoded string
 */
 void TatLogger::eepromWriteString(int p_addr, const String& p_value) const
 {
@@ -490,9 +543,9 @@ void TatLogger::eepromWriteString(int p_addr, const String& p_value) const
     EEPROM.commit();
 }
 
-/*!
-   \brief format datetime
-   \return formatted datetime
+/**
+* @brief format datetime
+* @return formatted datetime
 */
 String TatLogger::getDatetime()
 {
@@ -513,9 +566,6 @@ String TatLogger::getDatetime()
     return  datetimeFormat + "Z";
 }
 
-/*!
-   \brief request device catalog
-*/
 void TatLogger::requestDevicesCatalog()
 {
     String route = "api/devicecatalog";
@@ -524,9 +574,6 @@ void TatLogger::requestDevicesCatalog()
     getRequest(route, 2, headerkeys, headervalues);
 }
 
-/*!
-
-*/
 void TatLogger::setMaxLogRateFromMembershipRequest(void)
 {
     String tokenHeader = "Token " + m_token;
@@ -562,9 +609,9 @@ void TatLogger::setMaxLogRateFromMembershipRequest(void)
     }
 }
 
-/*!
-   \brief format http response for display
-   \return formatted http response
+/**
+* @brief format http response for display
+* @return formatted http response
 */
 String TatLogger::getHTTPResponse()
 {

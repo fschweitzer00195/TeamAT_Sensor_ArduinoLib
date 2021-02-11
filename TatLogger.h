@@ -1,3 +1,10 @@
+/**
+ * @file TatLogger.h
+ * @author Frederic Schweitzer
+ * @brief Main module to log data to the teamAt server or stream to mobile app via BLE
+ * @version 0.1
+ * 
+ */
 #ifndef __TATLOGGER_H__
 #define __TATLOGGER_H__
 

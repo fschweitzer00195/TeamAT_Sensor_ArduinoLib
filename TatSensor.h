@@ -6,6 +6,13 @@
 #define __TATSENSOR_H__
 
 #include <Arduino.h>
+/**
+ * @file TatSensor.h
+ * @author Frederic Schweitzer
+ * @brief manage the data of a single sensor
+ * @version 0.1
+ * 
+ */
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>

@@ -14,7 +14,7 @@ TatBTParser::TatBTParser(void) :
 void TatBTParser::begin(bool p_streamMode)
 {
     // Create the BLE Device
-    BLEDevice::init("ESP32");
+    BLEDevice::init("TeamAT-Sensor");
     // Create server
     m_server = BLEDevice::createServer();
     m_server->setCallbacks(new MyServerCallbacks(&m_deviceConnected));
@@ -32,7 +32,7 @@ void TatBTParser::begin(bool p_streamMode)
                         BLECharacteristic::PROPERTY_WRITE  |
                         BLECharacteristic::PROPERTY_NOTIFY
                         );
-        m_credentialsCharacteristic->addDescriptor(new BLE2902());
+        m_credentialsCharacteristic -> addDescriptor(new BLE2902());
         m_credentialsCharacteristic -> setCallbacks(new CredentialsCallbacks(&m_messageReceived, &m_credentials));  // manque peut etre des parentheses
     }
     else
@@ -90,7 +90,7 @@ void TatBTParser::end(void)
 void TatBTParser::resume(void) // not working, not supposesd to be used
 {
     // Create the BLE Device
-    BLEDevice::init("ESP32");
+    BLEDevice::init("TeamAT-Sensor");
     // Create server
     m_server = BLEDevice::createServer();
     m_server->setCallbacks(new MyServerCallbacks(&m_deviceConnected));

@@ -1,6 +1,10 @@
-//
-// Created by teamat on 2020-06-19.
-//
+/**
+ * @file TatSensorDateTime.h
+ * @author Frederic Schweitzer
+ * @brief Offline DateTime manger
+ * @version 0.1
+ * 
+ */
 
 #ifndef __TATSENSORDATETIME_H__
 #define __TATSENSORDATETIME_H__

@@ -1,3 +1,10 @@
+/**
+ * @file TatUtils.h
+ * @author Frederic Schweitzer
+ * @brief utilities classes and functions
+ * @version 0.1
+ * 
+ */
 #ifndef __TATUTILS_H__
 #define __TATUTILS_H__
 

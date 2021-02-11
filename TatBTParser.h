@@ -2,6 +2,13 @@
 #define __TATBTPARSER_H__
 
 #include <Arduino.h>
+/**
+ * @file TatBTParser.h
+ * @author Frederic Schweitzer
+ * @brief Bluetooth (BLE) parser and calback manager
+ * @version 0.1
+ * 
+ */
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
